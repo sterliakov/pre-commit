@@ -1,8 +1,40 @@
-[![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/pre-commit/pre-commit/main.svg)](https://results.pre-commit.ci/latest/github/pre-commit/pre-commit/main)
+A fork of [pre-commit](https://pre-commit.com/) with experimental `workdir` setting support.
 
-## pre-commit
+Using this fork, you can configure some hooks to run "as-if" the selected subfolders were in repository root.
 
-A framework for managing and maintaining multi-language pre-commit hooks.
+E.g., with the following directory structure:
 
-For more information see: https://pre-commit.com/
+```
+.
+├── .git
+├── backend
+│   ├── pyproject.toml
+│   └── uv.lock
+├── frontend
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── biome.jsonc
+│   ├── src
+│   ├── tsconfig.json
+│   └── vite.config.js
+└── .pre-commig-config.yaml
+```
+
+the following file will find backend-related and frontend-related files correctly:
+
+```yaml
+repos:
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.4.24
+    hooks:
+    -   id: uv-lock
+        workdir: backend
+
+-   repo: https://github.com/biomejs/pre-commit
+    rev: "v0.5.0"
+    hooks:
+    -   id: biome-check
+        additional_dependencies: ["@biomejs/biome"]
+        language_version: "20.18.0"
+        workdir: frontend
+```

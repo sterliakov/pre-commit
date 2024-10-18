@@ -426,6 +426,7 @@ def test_manifest_hooks(tempdir_factory, store):
         always_run=False,
         args=[],
         description='',
+        workdir='',
         entry='bin/hook.sh',
         exclude='^$',
         exclude_types=[],

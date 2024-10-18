@@ -13,6 +13,7 @@ from collections.abc import Generator
 from collections.abc import Iterable
 from collections.abc import MutableMapping
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from identify.identify import tags_from_path
@@ -27,6 +28,7 @@ from pre_commit.repository import all_hooks
 from pre_commit.repository import install_hook_envs
 from pre_commit.staged_files_only import staged_files_only
 from pre_commit.store import Store
+from pre_commit.util import chdir_context
 from pre_commit.util import cmd_output_b
 
 
@@ -61,12 +63,21 @@ def filter_by_include_exclude(
         names: Iterable[str],
         include: str,
         exclude: str,
+        workdir: str = '',
 ) -> Generator[str]:
     include_re, exclude_re = re.compile(include), re.compile(exclude)
+    if not workdir:
+        return (
+            filename for filename in names
+            if include_re.search(filename)
+            if not exclude_re.search(filename)
+        )
     return (
-        filename for filename in names
-        if include_re.search(filename)
-        if not exclude_re.search(filename)
+        str(filename)
+        for filename in map(Path, names)
+        if filename.is_relative_to(workdir) and
+        include_re.search(str(filename.relative_to(workdir))) and
+        not exclude_re.search(str(filename.relative_to(workdir)))
     )
 
 
@@ -103,6 +114,7 @@ class Classifier:
                 self.filenames,
                 hook.files,
                 hook.exclude,
+                hook.workdir,
             ),
             hook.types,
             hook.types_or,
@@ -189,7 +201,16 @@ def _run_single_hook(
             filenames = ()
         time_before = time.monotonic()
         language = languages[hook.language]
-        with language.in_env(hook.prefix, hook.language_version):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                language.in_env(hook.prefix, hook.language_version),
+            )
+            if hook.workdir:
+                stack.enter_context(chdir_context(hook.workdir))
+                filenames = tuple(
+                    str(Path(filename).relative_to(hook.workdir))
+                    for filename in filenames
+                )
             retcode, out = language.run_hook(
                 hook.prefix,
                 hook.entry,

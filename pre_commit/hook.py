@@ -29,6 +29,7 @@ class Hook(NamedTuple):
     fail_fast: bool
     pass_filenames: bool
     description: str
+    workdir: str
     language_version: str
     log_file: str
     minimum_pre_commit_version: str

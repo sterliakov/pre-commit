@@ -16,6 +16,19 @@ from typing import Callable
 from pre_commit import parse_shebang
 
 
+if sys.version_info >= (3, 11, 0):
+    from contextlib import chdir as chdir_context
+else:
+    @contextlib.contextmanager  # type: ignore[no-redef]
+    def chdir_context(target: str) -> Generator[None]:
+        cwd = os.getcwd()
+        os.chdir(target)
+        try:
+            yield
+        finally:
+            os.chdir(cwd)
+
+
 def force_bytes(exc: Any) -> bytes:
     with contextlib.suppress(TypeError):
         return bytes(exc)
